@@ -59,12 +59,8 @@ class CryptographyManagerImpl implements CryptographyManager {
                     promptInfo.getScope() == SecretScope.ONE_BIOMETRIC);
 
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-                if (promptInfo.getLockBehavior() == LockBehavior.LOCK_WITH_DEVICE) {
                     builder.setUserAuthenticationValidityDurationSeconds(
                         promptInfo.getAndroidAutoLockTimeSeconds());
-                } else {
-                    builder.setUserAuthenticationValidityDurationSeconds(5);
-                }
             } else {
                 switch (promptInfo.getLockBehavior()) {
                     case LOCK_WITH_DEVICE:
@@ -76,14 +72,14 @@ class CryptographyManagerImpl implements CryptographyManager {
                         break;
                     case LOCK_AFTER_USE:
                         builder.setUserAuthenticationParameters(
-                            5,
+                            promptInfo.getAndroidAutoLockTimeSeconds(),
                             KeyProperties.AUTH_BIOMETRIC_STRONG
                                 | KeyProperties.AUTH_DEVICE_CREDENTIAL
                         );
                         break;
                     case LOCK_AFTER_USE_BIOMETRIC_ONLY:
                         builder.setUserAuthenticationParameters(
-                            5,
+                            promptInfo.getAndroidAutoLockTimeSeconds(),
                             KeyProperties.AUTH_BIOMETRIC_STRONG
                         );
                         break;
