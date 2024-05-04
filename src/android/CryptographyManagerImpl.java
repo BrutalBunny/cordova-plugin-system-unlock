@@ -47,10 +47,7 @@ class CryptographyManagerImpl implements CryptographyManager {
                 Log.d(TAG, "createSecretKey failed to delete existing entry", e);
             }
 
-            KeyGenParameterSpec.Builder builder = new KeyGenParameterSpec.Builder(
-                keyName,
-                KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT
-            )
+            KeyGenParameterSpec.Builder builder = new KeyGenParameterSpec.Builder(keyName, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                 .setKeySize(KEY_SIZE)
@@ -59,31 +56,28 @@ class CryptographyManagerImpl implements CryptographyManager {
                     promptInfo.getScope() == SecretScope.ONE_BIOMETRIC);
 
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-                    builder.setUserAuthenticationValidityDurationSeconds(
-                        promptInfo.getAndroidAutoLockTimeSeconds());
+                int validityDuration = promptInfo.getAndroidAutoLockTimeSeconds();
+                if (validityDuration < -1) {
+                    validityDuration = -1;
+                }
+                
+                builder.setUserAuthenticationValidityDurationSeconds(promptInfo.getAndroidAutoLockTimeSeconds());
             } else {
+                int authParamsSeconds = promptInfo.getAndroidAutoLockTimeSeconds();
+                if (authParamsSeconds < 0) {
+                    authParamsSeconds = 0;
+                }
+
+                int authParamsFlags = KeyProperties.AUTH_BIOMETRIC_STRONG;
+
                 switch (promptInfo.getLockBehavior()) {
                     case LOCK_WITH_DEVICE:
-                        builder.setUserAuthenticationParameters(
-                            promptInfo.getAndroidAutoLockTimeSeconds(),
-                            KeyProperties.AUTH_BIOMETRIC_STRONG
-                                | KeyProperties.AUTH_DEVICE_CREDENTIAL
-                        );
-                        break;
                     case LOCK_AFTER_USE:
-                        builder.setUserAuthenticationParameters(
-                            promptInfo.getAndroidAutoLockTimeSeconds(),
-                            KeyProperties.AUTH_BIOMETRIC_STRONG
-                                | KeyProperties.AUTH_DEVICE_CREDENTIAL
-                        );
-                        break;
-                    case LOCK_AFTER_USE_BIOMETRIC_ONLY:
-                        builder.setUserAuthenticationParameters(
-                            promptInfo.getAndroidAutoLockTimeSeconds(),
-                            KeyProperties.AUTH_BIOMETRIC_STRONG
-                        );
+                        authParamsFlags |= KeyProperties.AUTH_DEVICE_CREDENTIAL;
                         break;
                 }
+
+                builder.setUserAuthenticationParameters(authParamsSeconds, authParamsFlags);
             }
 
             KeyGenerator keyGenerator = KeyGenerator.getInstance(KEY_ALGORITHM_AES, ANDROID_KEYSTORE);
@@ -104,8 +98,7 @@ class CryptographyManagerImpl implements CryptographyManager {
             cipher.init(Cipher.ENCRYPT_MODE, secretKey);
             return cipher;
         } catch (CryptoException e) {
-            if (e.getCause() instanceof KeyPermanentlyInvalidatedException
-                    || e.getCause() instanceof UnrecoverableKeyException) {
+            if (e.getCause() instanceof KeyPermanentlyInvalidatedException || e.getCause() instanceof UnrecoverableKeyException) {
                 throw new KeyInvalidatedException();
             }
             throw e;
@@ -117,8 +110,7 @@ class CryptographyManagerImpl implements CryptographyManager {
     @Override
     public EncryptedData encryptData(String plaintext, Cipher cipher) throws CryptoException {
         try {
-            byte[] ciphertext = cipher.doFinal(
-                plaintext.getBytes(StandardCharsets.UTF_8));
+            byte[] ciphertext = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
             return new EncryptedData(ciphertext, cipher.getIV());
         } catch (Exception e) {
             throw new CryptoException(e.getMessage(), e);
