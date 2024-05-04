@@ -52,8 +52,7 @@ class CryptographyManagerImpl implements CryptographyManager {
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                 .setKeySize(KEY_SIZE)
                 .setUserAuthenticationRequired(true)
-                .setInvalidatedByBiometricEnrollment(
-                    promptInfo.getScope() == SecretScope.ONE_BIOMETRIC);
+                .setInvalidatedByBiometricEnrollment(promptInfo.getScope() == SecretScope.ONE_BIOMETRIC);
 
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
                 int validityDuration = promptInfo.getAndroidAutoLockTimeSeconds();
